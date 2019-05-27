@@ -2,10 +2,13 @@ resource "random_uuid" "google_container_cluster" {
   count = var.name == null ? 1 : 0
 }
 
-
 resource "google_container_cluster" "default" {
-  name     = var.name == null ? random_uuid.google_container_cluster.result : var.name
+  provider = "google-beta"
+
+  network  = var.network
   location = var.location
+
+  name = var.name == null ? "gke-${random_uuid.google_container_cluster[0].result}" : var.name
 
   min_master_version = var.minimum_version
 
@@ -20,8 +23,6 @@ resource "google_container_cluster" "default" {
       issue_client_certificate = false
     }
   }
-
-  network = var.network
 
   dynamic "private_cluster_config" {
     for_each = var.private_nodes == true ? list(var.master_ipv4_cidr_block) : []
@@ -56,7 +57,4 @@ resource "google_container_cluster" "default" {
       disabled = true
     }
   }
-
-  # beta:
-  #monitoring_service = "monitoring.googleapis.com/kubernetes"
 }

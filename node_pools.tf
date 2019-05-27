@@ -1,35 +1,3 @@
-
-resource "google_container_node_pool" "gke" {
-  provider = "google-beta"
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  cluster  = google_container_cluster.default.name
-  location = google_container_cluster.default.location
-
-  node_count = 1
-
-  node_config {
-    disk_size_gb = 10
-    disk_type    = "pd-standard"
-    machine_type = "g1-small"
-
-    oauth_scopes = var.oauth_scopes
-
-    workload_metadata_config {
-      node_metadata = "SECURE"
-    }
-
-    preemptible = true
-  }
-
-  management {
-    auto_upgrade = true
-    auto_repair  = true
-  }
-}
-
 resource "google_container_node_pool" "default" {
   count    = length(var.node_pools)
   provider = "google-beta"
@@ -41,9 +9,14 @@ resource "google_container_node_pool" "default" {
   cluster  = google_container_cluster.default.name
   location = google_container_cluster.default.location
 
-  autoscaling {
-    min_node_count = 0
-    max_node_count = 333
+  node_count = lookup(var.node_pools[count.index], "node_count", -1) == -1 ? null : lookup(var.node_pools[count.index], "node_count")
+
+  dynamic "autoscaling" {
+    for_each = lookup(var.node_pools[count.index], "node_count", -1) == -1 ? [1] : []
+    content {
+      min_node_count = lookup(var.node_pools[count.index], "autoscaling_minimum", 0)
+      max_node_count = lookup(var.node_pools[count.index], "autoscaling_maximum", 333)
+    }
   }
 
   node_config {
@@ -57,7 +30,7 @@ resource "google_container_node_pool" "default" {
       node_metadata = "SECURE"
     }
 
-    preemptible = lookup(var.node_pools[count.index], "preemptible")
+    preemptible = lookup(var.node_pools[count.index], "preemptible", false)
 
     labels = lookup(var.node_pools[count.index], "labels", {})
 
@@ -69,8 +42,8 @@ resource "google_container_node_pool" "default" {
         effect = taint["value"]["effect"]
       }
     }
-
   }
+
   management {
     auto_upgrade = false
     auto_repair  = false
