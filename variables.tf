@@ -32,3 +32,7 @@ variable "oauth_scopes" {
     "monitoring",    # if google monitoring
   ]
 }
+
+variable "issue_client_certificate" {
+  default = false
+}

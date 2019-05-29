@@ -20,7 +20,7 @@ resource "google_container_cluster" "default" {
     password = ""
 
     client_certificate_config {
-      issue_client_certificate = false
+      issue_client_certificate = var.issue_client_certificate
     }
   }
 
